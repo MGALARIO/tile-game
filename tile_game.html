@@ -1204,6 +1204,11 @@ function closeAct() {
       alert('Amazing! You finished all '+total+' tiles!\n\nCorrect: '+correct+'/'+total+'\nWrong: '+wrong+'/'+total+'\n\nGreat job, class!\n\nRefresh the page to play again with new tiles!');
     },350);
   }
+
+  // If embedded in a parent portal (e.g. Michael's portfolio), return to it
+  if (window.parent && window.parent !== window) {
+    try { window.parent.postMessage('close', '*'); } catch (e) {}
+  }
 }
 
 // =====================================================
