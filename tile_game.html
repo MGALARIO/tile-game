@@ -1,0 +1,931 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Language Tile Game</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+html,body{
+  /* Interactive whiteboard / touchscreen friendliness */
+  touch-action:manipulation;          /* removes ~300ms tap delay, blocks double-tap zoom */
+  -webkit-tap-highlight-color:transparent;
+  -webkit-user-select:none;
+  -ms-user-select:none;
+  user-select:none;
+  overscroll-behavior:contain;
+}
+button,.tile,.choice,.w-chip,.w-chip-sel,.play-btn,.go-btn{
+  touch-action:manipulation;
+}
+body{
+  font-family:'Segoe UI',Arial,sans-serif;
+  background:linear-gradient(160deg,#0f0c29,#302b63,#24243e);
+  min-height:100vh;
+  display:flex;flex-direction:column;align-items:center;
+  padding:18px 10px 30px;
+  color:#fff;
+}
+h1{
+  font-size:1.8em;letter-spacing:2px;text-align:center;
+  margin-bottom:6px;
+  text-shadow:0 0 20px rgba(130,180,255,0.7);
+}
+.subtitle{font-size:0.9em;color:#aac;margin-bottom:14px;text-align:center;}
+
+/* SCOREBOARD */
+.scoreboard{
+  display:flex;gap:12px;flex-wrap:wrap;justify-content:center;
+  margin-bottom:18px;
+}
+.score-pill{
+  background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);
+  padding:6px 16px;border-radius:20px;font-size:0.95em;
+}
+
+/* LEGEND */
+.legend{
+  display:flex;gap:10px;flex-wrap:wrap;justify-content:center;
+  margin-bottom:16px;
+}
+.leg-item{
+  display:flex;align-items:center;gap:5px;
+  font-size:0.78em;color:#cce;
+}
+.leg-dot{width:12px;height:12px;border-radius:50%;}
+
+/* TILE GRID */
+#grid{
+  display:grid;
+  grid-template-columns:repeat(6,1fr);
+  gap:8px;
+  width:100%;max-width:720px;
+}
+.tile{
+  aspect-ratio:1;
+  background:linear-gradient(135deg,#1e2a4a,#2d3e6d);
+  border:2px solid rgba(100,150,255,0.3);
+  border-radius:12px;
+  display:flex;align-items:center;justify-content:center;
+  cursor:pointer;
+  font-size:1.3em;font-weight:bold;color:#a0c4ff;
+  transition:transform .15s,box-shadow .15s,border-color .15s;
+  user-select:none;position:relative;overflow:hidden;
+}
+.tile:hover:not(.used){
+  transform:scale(1.07);
+  border-color:rgba(100,210,255,0.8);
+  box-shadow:0 0 18px rgba(80,180,255,0.45);
+}
+.tile:active:not(.used){
+  transform:scale(.94);
+  border-color:rgba(100,210,255,1);
+  box-shadow:0 0 22px rgba(80,180,255,0.7);
+}
+.tile.used{cursor:default;}
+.tile.ok{
+  background:linear-gradient(135deg,#145214,#1d7a1d);
+  border-color:#4eff4e;color:#b0ffb0;font-size:1.6em;
+}
+.tile.bad{
+  background:linear-gradient(135deg,#521414,#7a1d1d);
+  border-color:#ff4e4e;color:#ffb0b0;font-size:1.6em;
+}
+
+/* OVERLAYS */
+.ovl{
+  display:none;position:fixed;inset:0;
+  background:rgba(0,0,0,0.75);
+  z-index:200;align-items:center;justify-content:center;
+  padding:12px;
+}
+.ovl.show{display:flex;}
+
+/* CATEGORY CARD */
+#catCard{
+  background:#fff;color:#222;
+  border-radius:22px;padding:36px 32px;
+  text-align:center;max-width:380px;width:100%;
+  animation:popIn .3s ease;
+}
+#cIcon{font-size:4.5em;margin-bottom:8px;}
+#cName{
+  font-size:2em;font-weight:900;letter-spacing:2px;
+  margin-bottom:6px;
+}
+#cDesc{color:#555;font-size:1em;margin-bottom:22px;line-height:1.5;}
+.go-btn{
+  padding:12px 36px;border:none;border-radius:30px;
+  font-size:1.1em;font-weight:700;cursor:pointer;color:#fff;
+  transition:opacity .2s;
+}
+.go-btn:hover{opacity:.85;}
+.go-btn:active{transform:scale(.97);opacity:.75;}
+
+/* ACTIVITY MODAL */
+#actModal{
+  background:#fff;color:#222;
+  border-radius:20px;padding:26px 24px;
+  max-width:620px;width:100%;
+  max-height:90vh;overflow-y:auto;
+  animation:popIn .3s ease;
+}
+@keyframes popIn{
+  from{transform:scale(.55);opacity:0;}
+  to{transform:scale(1);opacity:1;}
+}
+
+.modal-head{
+  display:flex;align-items:center;gap:10px;
+  margin-bottom:18px;padding-bottom:14px;
+  border-bottom:2px solid #eee;
+}
+.cat-badge{
+  padding:4px 14px;border-radius:20px;
+  font-weight:800;font-size:.82em;color:#fff;
+}
+.sub-label{color:#888;font-size:.88em;}
+
+/* PASSAGE */
+.passage{
+  background:#f4f8ff;border-left:5px solid #64b5f6;
+  padding:14px 16px;border-radius:8px;
+  margin-bottom:18px;line-height:1.75;font-size:.95em;
+  color:#333;
+}
+.passage strong{display:block;margin-bottom:8px;font-size:1.05em;color:#1565c0;}
+
+/* QUESTION */
+.q-text{
+  font-size:1.08em;font-weight:700;
+  margin-bottom:14px;color:#222;line-height:1.5;
+}
+
+/* MCQ CHOICES */
+.choices{display:flex;flex-direction:column;gap:9px;margin-bottom:16px;}
+.choice{
+  padding:14px 18px;border:2px solid #ddd;border-radius:10px;
+  cursor:pointer;text-align:left;background:#fff;
+  font-size:1.05em;min-height:52px;
+  transition:border-color .15s,background .15s,transform .1s;
+  font-family:inherit;
+}
+.choice:hover:not(:disabled){border-color:#64b5f6;background:#e8f4ff;}
+.choice:active:not(:disabled){background:#cfe6ff;transform:scale(.98);}
+.choice.correct{background:#d4edda;border-color:#28a745;color:#155724;font-weight:700;}
+.choice.wrong{background:#f8d7da;border-color:#dc3545;color:#721c24;}
+
+/* FEEDBACK */
+.fb{
+  padding:13px 16px;border-radius:10px;
+  margin-top:10px;display:none;font-size:.96em;line-height:1.5;
+}
+.fb.ok{background:#d4edda;color:#155724;border:1px solid #c3e6cb;}
+.fb.bad{background:#f8d7da;color:#721c24;border:1px solid #f5c6cb;}
+
+/* BUTTONS */
+.btn{
+  padding:14px 26px;border:none;border-radius:10px;
+  cursor:pointer;font-size:1.02em;font-weight:700;min-height:48px;
+  transition:opacity .2s,transform .1s;font-family:inherit;
+}
+.btn:hover{opacity:.85;}
+.btn:active{transform:scale(.97);opacity:.75;}
+.btn-blue{background:#1976d2;color:#fff;}
+.btn-grey{background:#6c757d;color:#fff;margin-top:12px;}
+.btn-red{background:#c62828;color:#fff;}
+
+/* LISTENING */
+.listen-area{text-align:center;margin:16px 0;}
+.play-btn{
+  background:#c62828;color:#fff;border:none;
+  padding:14px 32px;border-radius:50px;
+  font-size:1.15em;cursor:pointer;
+  display:inline-flex;align-items:center;gap:10px;
+  font-family:inherit;font-weight:700;
+  transition:opacity .2s;
+}
+.play-btn:hover{opacity:.85;}
+.play-btn:active{transform:scale(.96);opacity:.75;}
+.play-btn:disabled{background:#aaa;cursor:default;}
+#qArea{display:none;}
+
+/* JUMBLE */
+.jumble-bank{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px;}
+.w-chip{
+  padding:11px 18px;border:2px solid #90caf9;border-radius:24px;
+  background:#e3f2fd;cursor:pointer;font-size:1em;min-height:44px;
+  transition:background .15s,transform .1s;font-family:inherit;
+}
+.w-chip:hover{background:#bbdefb;}
+.w-chip:active{background:#90caf9;transform:scale(.95);}
+.answer-tray{
+  min-height:48px;border:2px dashed #aaa;border-radius:10px;
+  padding:8px 10px;display:flex;flex-wrap:wrap;gap:8px;
+  margin-bottom:14px;background:#fafafa;
+}
+.w-chip-sel{
+  padding:11px 18px;border:2px solid #1565c0;border-radius:24px;
+  background:#1565c0;color:#fff;cursor:pointer;
+  font-size:1em;min-height:44px;font-family:inherit;
+  transition:background .15s,transform .1s;
+}
+.w-chip-sel:hover{background:#0d47a1;}
+.w-chip-sel:active{background:#0a2e6e;transform:scale(.95);}
+</style>
+</head>
+<body>
+
+<h1>&#127891; Language Tile Game</h1>
+<p class="subtitle">Touch a tile to reveal your challenge!</p>
+
+<div class="scoreboard">
+  <div class="score-pill">&#9989; Correct: <strong id="sc">0</strong></div>
+  <div class="score-pill">&#10060; Wrong: <strong id="sw">0</strong></div>
+  <div class="score-pill">&#127919; Tiles Left: <strong id="sl">30</strong></div>
+</div>
+
+<div class="legend">
+  <div class="leg-item"><div class="leg-dot" style="background:#4fc3f7"></div>Reading</div>
+  <div class="leg-item"><div class="leg-dot" style="background:#ce93d8"></div>Grammar</div>
+  <div class="leg-item"><div class="leg-dot" style="background:#ffb74d"></div>Vocabulary</div>
+  <div class="leg-item"><div class="leg-dot" style="background:#ef9a9a"></div>Listening</div>
+  <div class="leg-item"><div class="leg-dot" style="background:#a5d6a7"></div>Writing</div>
+</div>
+
+<div id="grid"></div>
+
+<!-- Category Reveal Overlay -->
+<div class="ovl" id="catOvl">
+  <div id="catCard">
+    <div id="cIcon"></div>
+    <div id="cName"></div>
+    <div id="cDesc"></div>
+    <button class="go-btn" id="goBtn" onclick="openActivity()">Let&#39;s Go! &#9658;</button>
+  </div>
+</div>
+
+<!-- Activity Overlay -->
+<div class="ovl" id="actOvl">
+  <div id="actModal"></div>
+</div>
+
+<script>
+// =====================================================
+// ACTIVITY POOL
+// =====================================================
+var pool = [
+
+  // ---- READING (6) ----
+  {
+    cat:'reading',
+    title:'A Dog Named Max',
+    passage:'Max is a friendly brown dog. He lives with a small family in a cozy house near the park. Every morning, Max wakes up early and barks softly to wake his owner, Tom. His favorite activity is playing fetch in the park. Max loves children and always wags his tail when he sees them.',
+    q:'What does Max do every morning to wake his owner?',
+    type:'mcq',
+    choices:['He licks Tom\'s face','He barks softly','He runs to the park','He eats his breakfast first'],
+    ans:1
+  },
+  {
+    cat:'reading',
+    title:'The Four Seasons',
+    passage:'There are four seasons in a year: spring, summer, autumn, and winter. In spring, flowers bloom and birds sing. Summer is hot and sunny. In autumn, leaves turn orange and fall from trees. Winter is cold, and sometimes it snows. Each season brings something special to enjoy.',
+    q:'What happens to leaves during autumn?',
+    type:'mcq',
+    choices:['They become green and grow bigger','They turn orange and fall from trees','They bloom with colorful flowers','They stay on the tree all year'],
+    ans:1
+  },
+  {
+    cat:'reading',
+    title:'The School Library',
+    passage:'Our school has a beautiful library on the second floor, next to the science room. The library has hundreds of books about animals, history, science, and adventure. Students can borrow up to three books at a time. Mrs. Santos, the librarian, always helps students find the right books.',
+    q:'How many books can a student borrow at one time?',
+    type:'mcq',
+    choices:['One book only','Two books','Three books','As many as they want'],
+    ans:2
+  },
+  {
+    cat:'reading',
+    title:"Maria's Birthday",
+    passage:"Last Saturday was Maria's birthday. Her family surprised her with a chocolate cake and colorful balloons. Her friends came to her house and they played games together. Maria received many gifts, but her favorite was a book about outer space. She was very happy the whole day.",
+    q:"What was Maria's favorite birthday gift?",
+    type:'mcq',
+    choices:['A chocolate cake','Colorful balloons','A book about outer space','A board game from her friends'],
+    ans:2
+  },
+  {
+    cat:'reading',
+    title:'The Rainy Afternoon',
+    passage:'It was a rainy afternoon. Dark clouds covered the sky and thunder roared loudly. Ana and her little brother Ben stayed inside. They decided to read books and drink hot chocolate together. When the rain finally stopped, a beautiful rainbow appeared in the sky. Both children rushed outside to see it.',
+    q:'What did Ana and Ben do while it was raining?',
+    type:'mcq',
+    choices:['They played outside in the rain','They read books and drank hot chocolate','They watched television all afternoon','They helped their mother cook dinner'],
+    ans:1
+  },
+  {
+    cat:'reading',
+    title:'Mr. Cruz Goes to the Market',
+    passage:"Every Sunday morning, Mr. Cruz goes to the local market. He buys fresh vegetables, fruits, and fish. The market is always busy and colorful. Vendors call out loudly to attract customers. Mr. Cruz enjoys talking to the vendors he knows well. He always returns home with a full basket by nine o'clock.",
+    q:'When does Mr. Cruz usually go to the market?',
+    type:'mcq',
+    choices:['Every Saturday evening','Every Sunday morning','Every Friday afternoon','Every Monday at noon'],
+    ans:1
+  },
+
+  // ---- GRAMMAR: Parts of Speech (5) ----
+  {
+    cat:'grammar',
+    sub:'Parts of Speech',
+    q:'What part of speech is the word in BOLD?\n\n"The **beautiful** garden is full of flowers."',
+    type:'mcq',
+    choices:['Noun','Verb','Adjective','Adverb'],
+    ans:2
+  },
+  {
+    cat:'grammar',
+    sub:'Parts of Speech',
+    q:'What part of speech is the word in BOLD?\n\n"**She** loves reading adventure books."',
+    type:'mcq',
+    choices:['Noun','Pronoun','Adjective','Conjunction'],
+    ans:1
+  },
+  {
+    cat:'grammar',
+    sub:'Parts of Speech',
+    q:'What part of speech is the word in BOLD?\n\n"The children **ran** quickly to the playground."',
+    type:'mcq',
+    choices:['Noun','Adjective','Verb','Preposition'],
+    ans:2
+  },
+  {
+    cat:'grammar',
+    sub:'Parts of Speech',
+    q:'What part of speech is the word in BOLD?\n\n"**Happiness** is the most important thing in life."',
+    type:'mcq',
+    choices:['Noun','Verb','Adjective','Adverb'],
+    ans:0
+  },
+  {
+    cat:'grammar',
+    sub:'Parts of Speech',
+    q:'What part of speech is the word in BOLD?\n\n"She speaks **loudly** during class discussions."',
+    type:'mcq',
+    choices:['Noun','Adjective','Pronoun','Adverb'],
+    ans:3
+  },
+
+  // ---- GRAMMAR: Prepositions (4) ----
+  {
+    cat:'grammar',
+    sub:'Prepositions (in / on / at)',
+    q:'Choose the correct preposition to complete the sentence:\n\n"The books are ___ the shelf."',
+    type:'mcq',
+    choices:['in','on','at','for'],
+    ans:1
+  },
+  {
+    cat:'grammar',
+    sub:'Prepositions (in / on / at)',
+    q:'Choose the correct preposition to complete the sentence:\n\n"We will meet you ___ the school gate."',
+    type:'mcq',
+    choices:['in','on','at','of'],
+    ans:2
+  },
+  {
+    cat:'grammar',
+    sub:'Prepositions (in / on / at)',
+    q:'Choose the correct preposition to complete the sentence:\n\n"The cat is sleeping ___ the box."',
+    type:'mcq',
+    choices:['at','on','in','by'],
+    ans:2
+  },
+  {
+    cat:'grammar',
+    sub:'Prepositions (in / on / at)',
+    q:'Choose the correct preposition to complete the sentence:\n\n"She was born ___ the Philippines."',
+    type:'mcq',
+    choices:['at','on','in','by'],
+    ans:2
+  },
+
+  // ---- GRAMMAR: Verb Agreement (2) ----
+  {
+    cat:'grammar',
+    sub:'Verb Agreement',
+    q:'Choose the correct verb to complete the sentence:\n\n"The students ___ very excited about the field trip."',
+    type:'mcq',
+    choices:['is','are','was','am'],
+    ans:1
+  },
+  {
+    cat:'grammar',
+    sub:'Verb Agreement',
+    q:'Choose the correct verb to complete the sentence:\n\n"My mother ___ delicious food for us every night."',
+    type:'mcq',
+    choices:['cook','cooks','cooking','cooked'],
+    ans:1
+  },
+
+  // ---- GRAMMAR: Simple Tense (2) ----
+  {
+    cat:'grammar',
+    sub:'Simple Past Tense',
+    q:'Choose the correct verb form for the SIMPLE PAST TENSE:\n\n"Yesterday, she ___ to school very early."',
+    type:'mcq',
+    choices:['goes','go','going','went'],
+    ans:3
+  },
+  {
+    cat:'grammar',
+    sub:'Simple Future Tense',
+    q:'Choose the correct verb form for the SIMPLE FUTURE TENSE:\n\n"We ___ the science museum next Friday."',
+    type:'mcq',
+    choices:['visited','visit','will visit','are visiting'],
+    ans:2
+  },
+
+  // ---- GRAMMAR: Pronoun Case (2) ----
+  {
+    cat:'grammar',
+    sub:'Pronoun Case',
+    q:'Choose the correct pronoun to complete the sentence:\n\n"The teacher gave ___ a gold star for good behavior."',
+    type:'mcq',
+    choices:['he','him','his','himself'],
+    ans:1
+  },
+  {
+    cat:'grammar',
+    sub:'Pronoun Case',
+    q:'Choose the correct pronoun to complete the sentence:\n\n"___ and I went to the park yesterday afternoon."',
+    type:'mcq',
+    choices:['Him','Her','She','Them'],
+    ans:2
+  },
+
+  // ---- GRAMMAR: Jumbled Words (2) ----
+  {
+    cat:'grammar',
+    sub:'Jumbled Words',
+    q:'Arrange the words below to form a correct sentence.\nClick each word in the right order:',
+    type:'jumble',
+    words:['plays','the','Maria','piano','every','day'],
+    ans:'Maria plays the piano every day'
+  },
+  {
+    cat:'grammar',
+    sub:'Jumbled Words',
+    q:'Arrange the words below to form a correct sentence.\nClick each word in the right order:',
+    type:'jumble',
+    words:['the','classroom','students','cleaned','after','class','the'],
+    ans:'The students cleaned the classroom after class'
+  },
+
+  // ---- VOCABULARY: Synonyms (3) ----
+  {
+    cat:'vocabulary',
+    sub:'Synonyms',
+    q:'Choose the word that is a SYNONYM (same meaning) of:\n\n\ud83d\udd35 HAPPY',
+    type:'mcq',
+    choices:['sad','joyful','angry','tired'],
+    ans:1
+  },
+  {
+    cat:'vocabulary',
+    sub:'Synonyms',
+    q:'Choose the word that is a SYNONYM (same meaning) of:\n\n\ud83d\udd35 FAST',
+    type:'mcq',
+    choices:['slow','small','quick','quiet'],
+    ans:2
+  },
+  {
+    cat:'vocabulary',
+    sub:'Synonyms',
+    q:'Choose the word that is a SYNONYM (same meaning) of:\n\n\ud83d\udd35 BEAUTIFUL',
+    type:'mcq',
+    choices:['ugly','lovely','noisy','heavy'],
+    ans:1
+  },
+
+  // ---- VOCABULARY: Antonyms (3) ----
+  {
+    cat:'vocabulary',
+    sub:'Antonyms',
+    q:'Choose the word that is an ANTONYM (opposite meaning) of:\n\n\ud83d\udd34 BIG',
+    type:'mcq',
+    choices:['large','huge','small','wide'],
+    ans:2
+  },
+  {
+    cat:'vocabulary',
+    sub:'Antonyms',
+    q:'Choose the word that is an ANTONYM (opposite meaning) of:\n\n\ud83d\udd34 COLD',
+    type:'mcq',
+    choices:['chilly','cool','warm','hot'],
+    ans:3
+  },
+  {
+    cat:'vocabulary',
+    sub:'Antonyms',
+    q:'Choose the word that is an ANTONYM (opposite meaning) of:\n\n\ud83d\udd34 EASY',
+    type:'mcq',
+    choices:['simple','difficult','smooth','light'],
+    ans:1
+  },
+
+  // ---- LISTENING (5) ----
+  {
+    cat:'listening',
+    title:'Listen carefully!',
+    listenText:"Ana woke up early on Saturday morning. She had a big smile on her face because her family was going to the beach. She packed her bag with sunscreen, a towel, and snacks. The weather was perfect, sunny and warm, and everyone was excited.",
+    q:'Where was Ana going on Saturday morning?',
+    type:'mcq',
+    choices:['To school','To the park','To the beach','To the market'],
+    ans:2
+  },
+  {
+    cat:'listening',
+    title:'Listen carefully!',
+    listenText:"The school bell rang at seven thirty in the morning. Students quickly went to their classrooms and sat down. Their teacher, Mr. Reyes, wrote the day's lesson on the board. He told the class they would be studying about plants today.",
+    q:'What will the class study according to Mr. Reyes?',
+    type:'mcq',
+    choices:['About animals','About plants','About weather','About numbers'],
+    ans:1
+  },
+  {
+    cat:'listening',
+    title:'Listen carefully!',
+    listenText:'To make a peanut butter sandwich, first get two slices of bread. Then, use a knife to spread peanut butter on one slice. Next, place the other slice on top. Finally, cut the sandwich in half and enjoy your snack!',
+    q:'What is the FIRST step in making the sandwich?',
+    type:'mcq',
+    choices:['Cut the sandwich in half','Spread peanut butter','Get two slices of bread','Place the slices together'],
+    ans:2
+  },
+  {
+    cat:'listening',
+    title:'Listen carefully!',
+    listenText:"Good afternoon, class! Today we will have a special activity. Please take out a piece of paper and draw your favorite animal. Write three sentences about why you like that animal. You have fifteen minutes to finish the activity.",
+    q:'How much time do students have to finish the activity?',
+    type:'mcq',
+    choices:['Ten minutes','Twenty minutes','Fifteen minutes','Five minutes'],
+    ans:2
+  },
+  {
+    cat:'listening',
+    title:'Listen carefully!',
+    listenText:"Pedro loves basketball. He practices every afternoon after school with his friends in the neighborhood court. Last week, his team won their first game of the season. Pedro scored ten points and was very proud of himself.",
+    q:'How many points did Pedro score in the game?',
+    type:'mcq',
+    choices:['Five points','Eight points','Ten points','Twelve points'],
+    ans:2
+  },
+
+  // ---- WRITING / PREDICTION (2) ----
+  {
+    cat:'writing',
+    sub:'Prediction',
+    q:'Read the title of a story:\n\n\ud83d\udcda "The Last Piece of Cake"\n\nWhat do you think this story is MOST LIKELY about?',
+    type:'mcq',
+    choices:[
+      'A person who finds treasure hidden inside a cake',
+      'Someone who wants the last piece of cake before someone else takes it',
+      'A baker who never makes enough cake for customers',
+      'A child who does not like eating cake at all'
+    ],
+    ans:1
+  },
+  {
+    cat:'writing',
+    sub:'Prediction',
+    q:'Read the situation below:\n\n"Lisa studied very hard for her exam. She reviewed all her notes carefully and slept early the night before."\n\nWhat do you PREDICT will most likely happen next?',
+    type:'mcq',
+    choices:[
+      'Lisa will fail her exam because she was nervous',
+      'Lisa will forget everything she studied',
+      'Lisa will do well in her exam',
+      'Lisa will decide not to take the exam'
+    ],
+    ans:2
+  }
+];
+
+// =====================================================
+// CATEGORY CONFIG
+// =====================================================
+var catCfg = {
+  reading:    {icon:'\ud83d\udcd6', name:'READING',    color:'#0288d1', desc:'Read the short passage carefully, then answer the question!'},
+  grammar:    {icon:'\u270f\ufe0f', name:'GRAMMAR',    color:'#7b1fa2', desc:'Show off your grammar skills and choose the correct answer!'},
+  vocabulary: {icon:'\ud83d\udd24', name:'VOCABULARY', color:'#e65100', desc:"Let's play with words! Choose the correct synonym or antonym!"},
+  listening:  {icon:'\ud83c\udfa7', name:'LISTENING',  color:'#c62828', desc:'Listen to the recording carefully, then answer the question!'},
+  writing:    {icon:'\ud83d\uddd2\ufe0f', name:'WRITING',    color:'#2e7d32', desc:'Think it through! Read and predict what will happen!'}
+};
+
+// =====================================================
+// GAME STATE
+// =====================================================
+var tiles = [];
+var curIdx = null;
+var curAct = null;
+var bankWords = [];
+var trayWords = [];
+var correct = 0;
+var wrong = 0;
+var answered = false;
+
+// =====================================================
+// INIT
+// =====================================================
+function init() {
+  var shuffled = pool.slice().sort(function(){return Math.random()-.5;});
+  var chosen = shuffled.slice(0,30);
+
+  tiles = chosen.map(function(act,i){
+    return {act:act, done:false, ok:null, el:null};
+  });
+
+  var grid = document.getElementById('grid');
+  grid.innerHTML = '';
+
+  tiles.forEach(function(tile,idx){
+    var d = document.createElement('div');
+    d.className = 'tile';
+    d.innerHTML = '<span>'+(idx+1)+'</span>';
+    d.addEventListener('click', function(){ selectTile(idx); });
+    grid.appendChild(d);
+    tile.el = d;
+  });
+
+  updateScore();
+}
+
+// =====================================================
+// SELECT TILE
+// =====================================================
+function selectTile(idx) {
+  var tile = tiles[idx];
+  if (tile.done) return;
+
+  curIdx = idx;
+  curAct = tile.act;
+  answered = false;
+
+  var cfg = catCfg[curAct.cat];
+  document.getElementById('cIcon').textContent = cfg.icon;
+  document.getElementById('cName').textContent = cfg.name;
+  document.getElementById('cName').style.color = cfg.color;
+  document.getElementById('cDesc').textContent = cfg.desc;
+  document.getElementById('catCard').style.borderTop = '7px solid '+cfg.color;
+  document.getElementById('goBtn').style.background = cfg.color;
+
+  document.getElementById('catOvl').classList.add('show');
+}
+
+// =====================================================
+// OPEN ACTIVITY
+// =====================================================
+function openActivity() {
+  document.getElementById('catOvl').classList.remove('show');
+
+  var modal = document.getElementById('actModal');
+  modal.innerHTML = buildHTML(curAct);
+  document.getElementById('actOvl').classList.add('show');
+
+  if (curAct.type === 'jumble') {
+    initJumble();
+  }
+}
+
+// =====================================================
+// BUILD ACTIVITY HTML
+// =====================================================
+function buildHTML(act) {
+  var cfg = catCfg[act.cat];
+  var h = '';
+
+  // Header
+  h += '<div class="modal-head">';
+  h += '<span style="font-size:1.5em">'+cfg.icon+'</span>';
+  h += '<span class="cat-badge" style="background:'+cfg.color+'">'+cfg.name+'</span>';
+  if (act.sub) h += '<span class="sub-label">— '+act.sub+'</span>';
+  if (act.title && act.cat!=='listening') h += '<span class="sub-label">— '+act.title+'</span>';
+  h += '</div>';
+
+  // Reading passage
+  if (act.passage) {
+    h += '<div class="passage">';
+    h += '<strong>'+act.title+'</strong>';
+    h += '<br>'+escapeAndBreak(act.passage);
+    h += '</div>';
+  }
+
+  // Listening
+  if (act.cat === 'listening') {
+    h += '<p style="color:#555;margin-bottom:10px;font-size:.95em">Press <strong>Play Recording</strong> to hear the audio. Listen carefully!</p>';
+    h += '<div class="listen-area">';
+    h += '<button class="play-btn" id="playBtn" onclick="playListen()">&#128266; Play Recording</button>';
+    h += '</div>';
+    h += '<div id="qArea">';
+  } else {
+    h += '<div id="qArea" style="display:block;">';
+  }
+
+  // Question text
+  var qText = (act.q || '').replace(/\n/g,'<br>').replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>');
+  h += '<div class="q-text">'+qText+'</div>';
+
+  // MCQ choices
+  if (act.type === 'mcq') {
+    h += '<div class="choices">';
+    act.choices.forEach(function(c,i){
+      h += '<button class="choice" onclick="checkMCQ('+i+')">'+
+           '<strong>'+String.fromCharCode(65+i)+'.</strong> '+escHtml(c)+
+           '</button>';
+    });
+    h += '</div>';
+  }
+
+  // Jumble
+  if (act.type === 'jumble') {
+    h += '<p style="color:#555;font-size:.88em;margin-bottom:6px;">&#128073; Click a word to add it. Click it in your sentence to remove it.</p>';
+    h += '<div class="jumble-bank" id="wordBank"></div>';
+    h += '<p style="color:#555;font-size:.85em;margin-bottom:5px;">Your sentence:</p>';
+    h += '<div class="answer-tray" id="answerTray"></div>';
+    h += '<button class="btn btn-blue" onclick="checkJumble()">Check My Answer</button>';
+  }
+
+  h += '</div>'; // close qArea
+
+  // Feedback
+  h += '<div class="fb" id="fb"></div>';
+  h += '<button class="btn btn-grey" id="closeBtn" onclick="closeAct()" style="display:none;">Close Tile &times;</button>';
+
+  return h;
+}
+
+// =====================================================
+// LISTENING
+// =====================================================
+function playListen() {
+  if (!('speechSynthesis' in window)) {
+    document.getElementById('qArea').style.display = 'block';
+    return;
+  }
+  window.speechSynthesis.cancel();
+  var u = new SpeechSynthesisUtterance(curAct.listenText);
+  u.rate = 0.82;
+  u.pitch = 1.0;
+  u.lang = 'en-US';
+  u.onend = function(){
+    document.getElementById('qArea').style.display = 'block';
+    var pb = document.getElementById('playBtn');
+    if (pb) { pb.textContent = '\u{1F501} Play Again'; pb.disabled = false; }
+  };
+  window.speechSynthesis.speak(u);
+  var pb = document.getElementById('playBtn');
+  if (pb) { pb.innerHTML = '&#9654; Playing...'; pb.disabled = true; }
+}
+
+// =====================================================
+// MCQ CHECK
+// =====================================================
+function checkMCQ(sel) {
+  if (answered) return;
+  answered = true;
+
+  var btns = document.querySelectorAll('.choice');
+  btns.forEach(function(b){ b.disabled = true; });
+
+  var isOk = (sel === curAct.ans);
+  btns[sel].classList.add(isOk ? 'correct' : 'wrong');
+  if (!isOk) btns[curAct.ans].classList.add('correct');
+
+  showFeedback(isOk);
+}
+
+function showFeedback(isOk) {
+  var fb = document.getElementById('fb');
+  fb.style.display = 'block';
+  fb.className = 'fb ' + (isOk ? 'ok' : 'bad');
+
+  if (isOk) {
+    fb.innerHTML = '&#9989; <strong>Correct! Excellent work!</strong>';
+  } else {
+    var correctAns = curAct.type === 'mcq'
+      ? escHtml(curAct.choices[curAct.ans])
+      : escHtml(curAct.ans);
+    fb.innerHTML = '&#10060; <strong>Not quite!</strong> The correct answer is: <strong>' + correctAns + '</strong>';
+  }
+
+  document.getElementById('closeBtn').style.display = 'block';
+  recordResult(isOk);
+}
+
+// =====================================================
+// JUMBLE
+// =====================================================
+function initJumble() {
+  bankWords = curAct.words.slice().sort(function(){return Math.random()-.5;});
+  trayWords = [];
+  renderJumble();
+}
+
+function renderJumble() {
+  var bank = document.getElementById('wordBank');
+  var tray = document.getElementById('answerTray');
+  if (!bank || !tray) return;
+
+  bank.innerHTML = '';
+  bankWords.forEach(function(w,i){
+    var btn = document.createElement('button');
+    btn.className = 'w-chip';
+    btn.textContent = w;
+    btn.onclick = function(){ moveToTray(i); };
+    bank.appendChild(btn);
+  });
+
+  tray.innerHTML = '';
+  trayWords.forEach(function(w,i){
+    var btn = document.createElement('button');
+    btn.className = 'w-chip-sel';
+    btn.textContent = w;
+    btn.onclick = function(){ moveToBank(i); };
+    tray.appendChild(btn);
+  });
+}
+
+function moveToTray(bankIdx) {
+  if (answered) return;
+  trayWords.push(bankWords[bankIdx]);
+  bankWords.splice(bankIdx,1);
+  renderJumble();
+}
+
+function moveToBank(trayIdx) {
+  if (answered) return;
+  bankWords.push(trayWords[trayIdx]);
+  trayWords.splice(trayIdx,1);
+  renderJumble();
+}
+
+function checkJumble() {
+  if (answered) return;
+  answered = true;
+  var userAns = trayWords.join(' ').toLowerCase().trim();
+  var correctAns = curAct.ans.toLowerCase().trim();
+  var isOk = (userAns === correctAns);
+  showFeedback(isOk);
+}
+
+// =====================================================
+// RECORD RESULT
+// =====================================================
+function recordResult(isOk) {
+  if (isOk) correct++; else wrong++;
+  updateScore();
+  tiles[curIdx].done = true;
+  tiles[curIdx].ok = isOk;
+}
+
+function updateScore() {
+  document.getElementById('sc').textContent = correct;
+  document.getElementById('sw').textContent = wrong;
+  var done = tiles.filter(function(t){return t.done;}).length;
+  document.getElementById('sl').textContent = 30 - done;
+}
+
+// =====================================================
+// CLOSE ACTIVITY
+// =====================================================
+function closeAct() {
+  document.getElementById('actOvl').classList.remove('show');
+  if (window.speechSynthesis) window.speechSynthesis.cancel();
+
+  var tile = tiles[curIdx];
+  if (tile && tile.el) {
+    tile.el.classList.add('used', tile.ok ? 'ok' : 'bad');
+    tile.el.innerHTML = tile.ok ? '&#9989;' : '&#10060;';
+  }
+
+  if (tiles.every(function(t){return t.done;})) {
+    setTimeout(function(){
+      alert('\ud83c\udf89 Amazing! You finished all 30 tiles!\n\nCorrect: '+correct+'/30\nWrong: '+wrong+'/30\n\nGreat job, class!\n\nRefresh the page to play again with new tiles!');
+    },350);
+  }
+}
+
+// =====================================================
+// HELPERS
+// =====================================================
+function escHtml(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+function escapeAndBreak(s) {
+  return escHtml(s).replace(/\n/g,'<br>');
+}
+
+// =====================================================
+// START
+// =====================================================
+init();
+</script>
+</body>
+</html>
