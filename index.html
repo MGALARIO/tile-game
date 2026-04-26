@@ -545,7 +545,7 @@ var pool = [
   {
     cat:'listening',
     title:'Listen carefully!',
-    listenText:"The school bell rang at seven thirty in the morning. Students quickly went to their classrooms and sat down. Their teacher, Mr. Reyes, wrote the day's lesson on the board. He told the class they would be studying about plants today.",
+    listenText:"The school bell rang at seven thirty in the morning. Students quickly went to their classrooms and sat down. Their teacher, Mr. Galario, wrote the day's lesson on the board. He told the class they would be studying about plants today.",
     q:'What will the class study according to Mr. Reyes?',
     type:'mcq',
     choices:['About animals','About plants','About weather','About numbers'],
@@ -630,6 +630,8 @@ var trayWords = [];
 var correct = 0;
 var wrong = 0;
 var answered = false;
+var listenPlays = 0;
+var LISTEN_MAX_PLAYS = 2;
 
 // =====================================================
 // INIT
@@ -667,6 +669,7 @@ function selectTile(idx) {
   curIdx = idx;
   curAct = tile.act;
   answered = false;
+  listenPlays = 0;
 
   var cfg = catCfg[curAct.cat];
   document.getElementById('cIcon').textContent = cfg.icon;
@@ -769,6 +772,9 @@ function playListen() {
     document.getElementById('qArea').style.display = 'block';
     return;
   }
+  if (listenPlays >= LISTEN_MAX_PLAYS) return;
+  listenPlays++;
+
   window.speechSynthesis.cancel();
   var u = new SpeechSynthesisUtterance(curAct.listenText);
   u.rate = 0.82;
@@ -777,11 +783,19 @@ function playListen() {
   u.onend = function(){
     document.getElementById('qArea').style.display = 'block';
     var pb = document.getElementById('playBtn');
-    if (pb) { pb.textContent = '\u{1F501} Play Again'; pb.disabled = false; }
+    if (!pb) return;
+    if (listenPlays >= LISTEN_MAX_PLAYS) {
+      pb.innerHTML = '\uD83D\uDD07 No more plays (2/2)';
+      pb.disabled = true;
+    } else {
+      var left = LISTEN_MAX_PLAYS - listenPlays;
+      pb.innerHTML = '\uD83D\uDD01 Play Again (' + left + ' left)';
+      pb.disabled = false;
+    }
   };
   window.speechSynthesis.speak(u);
   var pb = document.getElementById('playBtn');
-  if (pb) { pb.innerHTML = '&#9654; Playing...'; pb.disabled = true; }
+  if (pb) { pb.innerHTML = '&#9654; Playing... (' + listenPlays + '/' + LISTEN_MAX_PLAYS + ')'; pb.disabled = true; }
 }
 
 // =====================================================
