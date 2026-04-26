@@ -1,0 +1,1229 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>English Buzzer Challenge</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+html,body{
+  touch-action:manipulation;
+  -webkit-tap-highlight-color:transparent;
+  -webkit-user-select:none;-ms-user-select:none;user-select:none;
+  overscroll-behavior:contain;
+}
+body{
+  font-family:'Segoe UI',Arial,sans-serif;
+  background:radial-gradient(ellipse at top,#1a2444 0%,#0a0e1f 60%,#000 100%);
+  min-height:100vh;color:#fff;padding:10px;
+  background-attachment:fixed;
+}
+
+/* HEADER */
+header{
+  text-align:center;margin-bottom:10px;
+  position:relative;
+}
+h1{
+  font-size:2em;letter-spacing:3px;font-weight:900;
+  background:linear-gradient(90deg,#ffd700,#ff6b6b,#ffd700);
+  -webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;
+  text-shadow:0 0 30px rgba(255,215,0,0.4);
+  margin-bottom:4px;
+}
+.subtitle{font-size:0.85em;color:#a8b3d6;letter-spacing:1px;}
+.top-bar{
+  display:flex;gap:10px;justify-content:center;flex-wrap:wrap;
+  margin-top:8px;font-size:0.85em;
+}
+.top-bar button,.top-bar label{
+  background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.2);
+  color:#fff;padding:6px 14px;border-radius:18px;cursor:pointer;
+  font-family:inherit;font-size:.92em;
+}
+.top-bar button:hover{background:rgba(255,255,255,0.15);}
+.top-bar input{
+  width:55px;background:transparent;border:none;color:#ffd700;
+  font-weight:700;text-align:center;font-size:1em;font-family:inherit;
+}
+
+/* ARENA */
+.arena{
+  display:grid;
+  grid-template-columns:1fr 2.2fr 1fr;
+  gap:14px;max-width:1400px;margin:0 auto;
+  align-items:stretch;
+}
+
+/* PLAYER PANEL */
+.player{
+  display:flex;flex-direction:column;align-items:center;
+  background:rgba(255,255,255,0.04);
+  border-radius:18px;padding:14px 10px;
+  border:2px solid;
+  position:relative;
+}
+.player.p1{border-color:#3b82f6;box-shadow:0 0 30px rgba(59,130,246,0.3) inset;}
+.player.p2{border-color:#ef4444;box-shadow:0 0 30px rgba(239,68,68,0.3) inset;}
+.player.active{
+  animation:pulseGlow 1.5s infinite;
+}
+.player.p1.active{box-shadow:0 0 50px rgba(59,130,246,0.7) inset, 0 0 30px rgba(59,130,246,0.5);}
+.player.p2.active{box-shadow:0 0 50px rgba(239,68,68,0.7) inset, 0 0 30px rgba(239,68,68,0.5);}
+.player.dim{opacity:0.4;filter:grayscale(0.5);}
+
+@keyframes pulseGlow{
+  0%,100%{transform:scale(1);}
+  50%{transform:scale(1.02);}
+}
+
+.pname-input{
+  background:transparent;border:none;color:#fff;
+  font-size:1.15em;font-weight:800;letter-spacing:1px;
+  text-align:center;width:100%;font-family:inherit;
+  padding:4px;border-bottom:2px dashed rgba(255,255,255,0.2);
+  margin-bottom:6px;
+}
+.pname-input:focus{outline:none;border-bottom-color:#ffd700;}
+.p1 .pname-input{color:#7eb6ff;}
+.p2 .pname-input{color:#ff9999;}
+
+.score{
+  font-size:2.6em;font-weight:900;
+  text-shadow:0 0 20px currentColor;
+  margin-bottom:8px;
+}
+.p1 .score{color:#7eb6ff;}
+.p2 .score{color:#ff9999;}
+
+/* LADDER */
+.ladder{
+  width:80%;background:rgba(0,0,0,0.4);
+  border-radius:12px;border:1px solid rgba(255,255,255,0.1);
+  flex:1;min-height:280px;
+  display:flex;flex-direction:column-reverse;
+  position:relative;overflow:hidden;
+  margin-bottom:10px;
+}
+.fill{
+  width:100%;height:0%;
+  transition:height .8s cubic-bezier(.34,1.56,.64,1);
+  position:relative;
+}
+.p1 .fill{background:linear-gradient(0deg,#1e40af,#3b82f6,#7eb6ff);}
+.p2 .fill{background:linear-gradient(0deg,#991b1b,#ef4444,#ff9999);}
+.fill::before{
+  content:'';position:absolute;inset:0;
+  background:linear-gradient(0deg,transparent,rgba(255,255,255,0.3),transparent);
+  background-size:100% 30px;
+  animation:shimmer 2s infinite linear;
+}
+@keyframes shimmer{
+  from{background-position:0 -30px;}
+  to{background-position:0 100%;}
+}
+.bell-top{
+  position:absolute;top:6px;left:50%;transform:translateX(-50%);
+  font-size:2em;z-index:2;
+  filter:grayscale(1) brightness(0.5);
+  transition:filter .3s;
+}
+.bell-top.ring{
+  filter:none;
+  animation:bellShake .15s 12;
+}
+@keyframes bellShake{
+  0%,100%{transform:translateX(-50%) rotate(0);}
+  25%{transform:translateX(-50%) rotate(-25deg);}
+  75%{transform:translateX(-50%) rotate(25deg);}
+}
+.milestone{
+  position:absolute;left:0;right:0;
+  border-top:1px dashed rgba(255,255,255,0.15);
+  font-size:0.65em;color:rgba(255,255,255,0.4);
+  padding-left:6px;pointer-events:none;
+}
+
+/* BUZZER */
+.buzzer{
+  width:100%;
+  aspect-ratio:1.6;
+  max-height:140px;
+  border:none;border-radius:50%;
+  font-size:1.5em;font-weight:900;letter-spacing:2px;
+  color:#fff;font-family:inherit;
+  cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+  position:relative;
+  transition:transform .1s;
+  text-shadow:0 2px 8px rgba(0,0,0,0.5);
+}
+.p1 .buzzer{
+  background:radial-gradient(circle at 30% 30%,#60a5fa,#1e40af 70%);
+  box-shadow:0 8px 0 #1e3a8a, 0 12px 30px rgba(59,130,246,0.5);
+}
+.p2 .buzzer{
+  background:radial-gradient(circle at 30% 30%,#fca5a5,#991b1b 70%);
+  box-shadow:0 8px 0 #7f1d1d, 0 12px 30px rgba(239,68,68,0.5);
+}
+.buzzer:active:not(:disabled){
+  transform:translateY(8px);
+  box-shadow:0 0 0 #1e3a8a, 0 4px 15px rgba(0,0,0,0.5);
+}
+.buzzer:disabled{
+  cursor:not-allowed;
+  filter:grayscale(0.7) brightness(0.6);
+  box-shadow:0 4px 0 #333, 0 6px 15px rgba(0,0,0,0.3);
+}
+.buzzer.armed{
+  animation:buzzerReady 1s infinite;
+}
+@keyframes buzzerReady{
+  0%,100%{filter:brightness(1);}
+  50%{filter:brightness(1.3);}
+}
+
+/* STAGE (CENTER) */
+.stage{
+  background:linear-gradient(160deg,#fff,#f0f4ff);
+  color:#222;border-radius:20px;padding:22px;
+  display:flex;flex-direction:column;
+  min-height:500px;
+  box-shadow:0 0 60px rgba(255,215,0,0.2);
+  position:relative;overflow:hidden;
+}
+.stage-status{
+  text-align:center;font-size:1.1em;font-weight:700;
+  color:#555;margin-bottom:14px;letter-spacing:1px;
+}
+.stage-status .who{font-weight:900;}
+
+/* DIFFICULTY PICKER */
+.diff-picker{
+  display:flex;flex-direction:column;gap:12px;
+  margin:auto 0;
+}
+.diff-picker > .picker-title{
+  text-align:center;font-size:1.3em;font-weight:800;
+  color:#1a2444;margin-bottom:6px;
+}
+.diff-btn{
+  padding:18px 22px;border:none;border-radius:14px;
+  cursor:pointer;font-family:inherit;font-weight:800;
+  font-size:1.15em;color:#fff;letter-spacing:1px;
+  display:flex;justify-content:space-between;align-items:center;
+  transition:transform .15s,box-shadow .15s,opacity .2s;
+  min-height:64px;
+}
+.diff-btn:hover:not(:disabled){transform:translateY(-3px);box-shadow:0 8px 20px rgba(0,0,0,0.25);}
+.diff-btn:active:not(:disabled){transform:translateY(0);}
+.diff-btn:disabled{opacity:0.35;cursor:not-allowed;}
+.diff-btn.easy{background:linear-gradient(135deg,#10b981,#059669);}
+.diff-btn.average{background:linear-gradient(135deg,#f59e0b,#d97706);}
+.diff-btn.difficult{background:linear-gradient(135deg,#dc2626,#991b1b);}
+.diff-btn .pts{
+  background:rgba(0,0,0,0.25);padding:5px 12px;border-radius:20px;
+  font-size:0.85em;
+}
+.diff-btn .left{font-size:0.7em;opacity:0.85;display:block;margin-top:3px;}
+
+/* QUESTION AREA */
+#qArea{display:none;flex-direction:column;flex:1;}
+#qArea.show{display:flex;}
+
+.skill-tag{
+  display:inline-block;background:#1a2444;color:#ffd700;
+  padding:4px 12px;border-radius:20px;font-size:0.8em;
+  font-weight:700;letter-spacing:1px;margin-bottom:10px;
+  align-self:flex-start;
+}
+
+.passage{
+  background:#f4f8ff;border-left:5px solid #3b82f6;
+  padding:14px 16px;border-radius:8px;
+  margin-bottom:12px;line-height:1.6;font-size:0.95em;
+  color:#222;
+}
+
+.listen-area{text-align:center;margin:10px 0;}
+.play-btn{
+  background:#dc2626;color:#fff;border:none;
+  padding:14px 28px;border-radius:50px;font-size:1.05em;
+  cursor:pointer;font-family:inherit;font-weight:700;
+  display:inline-flex;align-items:center;gap:8px;
+  transition:opacity .2s,transform .1s;
+}
+.play-btn:hover{opacity:.85;}
+.play-btn:active{transform:scale(.96);}
+.play-btn:disabled{background:#888;cursor:default;opacity:0.7;}
+
+.qtext{
+  font-size:1.2em;font-weight:700;line-height:1.5;
+  color:#1a2444;margin:8px 0 14px;
+}
+
+.choices{
+  display:grid;grid-template-columns:1fr 1fr;gap:10px;
+}
+.choice{
+  padding:14px 16px;border:3px solid #ddd;border-radius:12px;
+  background:#fff;text-align:left;cursor:pointer;
+  font-size:1em;font-family:inherit;font-weight:600;
+  min-height:60px;display:flex;align-items:center;gap:10px;
+  transition:all .15s;
+  color:#222;
+}
+.choice .letter{
+  background:#1a2444;color:#ffd700;
+  width:30px;height:30px;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  font-weight:900;flex-shrink:0;
+}
+.choice:hover:not(:disabled){border-color:#3b82f6;background:#eff6ff;transform:translateY(-2px);}
+.choice:active:not(:disabled){transform:translateY(0);}
+.choice:disabled{cursor:not-allowed;}
+.choice.correct{background:#d1fae5;border-color:#10b981;color:#065f46;}
+.choice.correct .letter{background:#10b981;color:#fff;}
+.choice.wrong{background:#fee2e2;border-color:#dc2626;color:#7f1d1d;}
+.choice.wrong .letter{background:#dc2626;color:#fff;}
+
+/* IMAGE QUESTION */
+.image-area{
+  text-align:center;
+  font-size:7em;line-height:1.1;
+  background:linear-gradient(135deg,#fef3c7,#fde68a);
+  border-radius:14px;padding:14px;
+  margin:6px 0 12px;
+  box-shadow:inset 0 0 0 2px rgba(0,0,0,0.05);
+  user-select:none;
+}
+
+/* JUMBLE */
+.jumble-bank{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px;min-height:50px;}
+.jumble-tray{
+  min-height:60px;border:2px dashed #888;border-radius:10px;
+  padding:8px;display:flex;flex-wrap:wrap;gap:8px;
+  background:#fafafa;margin-bottom:10px;
+}
+.w-chip{
+  padding:10px 16px;border:2px solid #3b82f6;border-radius:20px;
+  background:#dbeafe;color:#1e3a8a;cursor:pointer;font-weight:700;
+  font-family:inherit;font-size:0.95em;min-height:42px;
+  transition:transform .1s;
+}
+.w-chip:hover{background:#bfdbfe;}
+.w-chip:active{transform:scale(0.95);}
+.w-chip-sel{
+  padding:10px 16px;border:2px solid #1e3a8a;border-radius:20px;
+  background:#1e3a8a;color:#fff;cursor:pointer;font-weight:700;
+  font-family:inherit;font-size:0.95em;min-height:42px;
+}
+.btn-check{
+  background:#1e3a8a;color:#fff;border:none;
+  padding:14px 28px;border-radius:10px;
+  font-family:inherit;font-weight:800;font-size:1em;
+  cursor:pointer;align-self:center;
+}
+
+/* TIMER */
+.timer-bar{
+  height:8px;background:rgba(0,0,0,0.1);border-radius:4px;
+  overflow:hidden;margin-bottom:14px;
+}
+.timer-fill{
+  height:100%;background:linear-gradient(90deg,#10b981,#f59e0b,#dc2626);
+  width:100%;transition:width 1s linear;
+}
+
+/* FEEDBACK */
+.feedback{
+  padding:14px;border-radius:12px;margin-top:14px;
+  font-size:1.1em;font-weight:700;text-align:center;
+  display:none;
+}
+.feedback.ok{background:#d1fae5;color:#065f46;border:2px solid #10b981;}
+.feedback.bad{background:#fee2e2;color:#7f1d1d;border:2px solid #dc2626;}
+.next-btn{
+  margin-top:10px;background:#1a2444;color:#ffd700;border:none;
+  padding:12px 30px;border-radius:10px;
+  font-family:inherit;font-weight:800;font-size:1em;cursor:pointer;
+  letter-spacing:1px;
+}
+.next-btn:hover{opacity:.85;}
+
+/* WIN OVERLAY */
+.win-ovl{
+  display:none;position:fixed;inset:0;
+  background:rgba(0,0,0,0.85);z-index:300;
+  align-items:center;justify-content:center;padding:20px;
+}
+.win-ovl.show{display:flex;}
+.win-card{
+  background:linear-gradient(135deg,#fef3c7,#fde68a,#fcd34d);
+  color:#1a2444;border-radius:24px;padding:40px;
+  text-align:center;max-width:500px;width:100%;
+  box-shadow:0 0 80px rgba(255,215,0,0.8);
+  animation:winBounce .6s ease;
+}
+@keyframes winBounce{
+  0%{transform:scale(0);}
+  60%{transform:scale(1.1);}
+  100%{transform:scale(1);}
+}
+.win-card .trophy{font-size:5em;margin-bottom:10px;animation:bellShake .5s 5;}
+.win-card h2{font-size:2em;margin-bottom:8px;letter-spacing:2px;}
+.win-card .winner-name{font-size:1.5em;font-weight:900;color:#dc2626;margin-bottom:14px;}
+.win-card .scores{font-size:1.05em;margin-bottom:20px;}
+.win-card button{
+  background:#1a2444;color:#ffd700;border:none;
+  padding:14px 32px;border-radius:30px;font-family:inherit;
+  font-weight:800;font-size:1.05em;cursor:pointer;letter-spacing:1px;
+}
+
+/* CONFETTI */
+.confetti{position:fixed;top:-10px;width:10px;height:14px;z-index:250;pointer-events:none;}
+
+/* RESPONSIVE */
+@media (max-width:900px){
+  .arena{grid-template-columns:1fr;}
+  .ladder{min-height:120px;}
+  h1{font-size:1.5em;}
+}
+</style>
+</head>
+<body>
+
+<header>
+  <h1>&#127942; ENGLISH BUZZER CHALLENGE &#127942;</h1>
+  <div class="subtitle">Race to the bell! First to reach the target wins.</div>
+  <div class="top-bar">
+    <label>&#127919; Target: <input type="number" id="target" value="100" min="30" max="300" step="10"></label>
+    <button id="muteBtn">&#128266; Sound: ON</button>
+    <button id="restartBtn">&#128260; Restart</button>
+  </div>
+</header>
+
+<main class="arena">
+
+  <!-- PLAYER 1 -->
+  <aside class="player p1" id="p1">
+    <input class="pname-input" id="p1name" value="Player 1" maxlength="14">
+    <div class="score" id="p1score">0</div>
+    <div class="ladder">
+      <div class="bell-top" id="p1bell">&#128276;</div>
+      <div class="fill" id="p1fill"></div>
+    </div>
+    <button class="buzzer" id="p1buzz" disabled>BUZZ!</button>
+  </aside>
+
+  <!-- STAGE -->
+  <section class="stage">
+    <div class="stage-status" id="status">Pick a difficulty to begin</div>
+
+    <div class="diff-picker" id="diffPicker">
+      <div class="picker-title">Choose Difficulty</div>
+      <button class="diff-btn easy" data-d="easy">
+        <span>&#128153; EASY <span class="left" id="leftEasy"></span></span>
+        <span class="pts">+10 / -5</span>
+      </button>
+      <button class="diff-btn average" data-d="average">
+        <span>&#128156; AVERAGE <span class="left" id="leftAverage"></span></span>
+        <span class="pts">+20 / -10</span>
+      </button>
+      <button class="diff-btn difficult" data-d="difficult">
+        <span>&#10084;&#65039; DIFFICULT <span class="left" id="leftDifficult"></span></span>
+        <span class="pts">+30 / -15</span>
+      </button>
+    </div>
+
+    <div id="qArea">
+      <div class="timer-bar"><div class="timer-fill" id="timerFill"></div></div>
+      <span class="skill-tag" id="skillTag"></span>
+      <div class="passage" id="passage" style="display:none;"></div>
+      <div class="listen-area" id="listenArea" style="display:none;">
+        <button class="play-btn" id="playBtn">&#128266; Play Recording</button>
+      </div>
+      <div class="image-area" id="imageArea" style="display:none;"></div>
+      <div class="qtext" id="qtext"></div>
+      <div class="choices" id="choices"></div>
+      <div id="jumbleArea" style="display:none;">
+        <p style="color:#555;font-size:.85em;margin-bottom:6px;">&#128073; Tap a word to add. Tap again to remove.</p>
+        <div class="jumble-bank" id="wBank"></div>
+        <p style="color:#555;font-size:.82em;">Your sentence:</p>
+        <div class="jumble-tray" id="wTray"></div>
+        <button class="btn-check" id="jumbleCheck">Check Answer</button>
+      </div>
+      <div class="feedback" id="fb"></div>
+      <div style="text-align:center;">
+        <button class="next-btn" id="nextBtn" style="display:none;">Next Question &#9654;</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- PLAYER 2 -->
+  <aside class="player p2" id="p2">
+    <input class="pname-input" id="p2name" value="Player 2" maxlength="14">
+    <div class="score" id="p2score">0</div>
+    <div class="ladder">
+      <div class="bell-top" id="p2bell">&#128276;</div>
+      <div class="fill" id="p2fill"></div>
+    </div>
+    <button class="buzzer" id="p2buzz" disabled>BUZZ!</button>
+  </aside>
+
+</main>
+
+<!-- WIN OVERLAY -->
+<div class="win-ovl" id="winOvl">
+  <div class="win-card">
+    <div class="trophy">&#127942;</div>
+    <h2>WINNER!</h2>
+    <div class="winner-name" id="winnerName"></div>
+    <div class="scores" id="finalScores"></div>
+    <button id="playAgain">Play Again</button>
+  </div>
+</div>
+
+<script>
+// =====================================================
+// QUESTION POOL (Grade 7-8 English)
+// =====================================================
+var QUESTIONS = {
+  easy: [
+    {skill:'Grammar', type:'mcq', q:'Choose the correct verb: "She ___ to school every day."',
+     choices:['go','goes','going','gone'], ans:1},
+    {skill:'Synonym', type:'mcq', q:'What is a synonym of HAPPY?',
+     choices:['sad','joyful','angry','tired'], ans:1},
+    {skill:'Antonym', type:'mcq', q:'What is the opposite of FAST?',
+     choices:['quick','rapid','slow','speedy'], ans:2},
+    {skill:'Vocabulary', type:'mcq', q:'A "pediatrician" is a doctor for whom?',
+     choices:['Adults','Children','Animals','The elderly'], ans:1},
+    {skill:'Grammar', type:'mcq', q:'Identify the noun in: "The boy kicked the ball."',
+     choices:['kicked','the','boy','quickly'], ans:2},
+    {skill:'Reading', type:'mcq',
+     passage:'Mark walked to the store to buy milk. The store was closed, so he went home empty-handed.',
+     q:'Why did Mark go home without milk?',
+     choices:['He forgot money','The store was closed','He changed his mind','He bought juice'], ans:1},
+    {skill:'Listening', type:'listen',
+     listenText:'Maria has a small puppy named Buddy. Buddy loves to play in the garden every afternoon.',
+     q:"What is the puppy's name?",
+     choices:['Charlie','Buddy','Max','Rocky'], ans:1},
+    {skill:'Grammar', type:'mcq', q:'Which sentence is grammatically correct?',
+     choices:["He don't like apples.","He doesn't likes apples.","He doesn't like apples.","He not like apples."], ans:2},
+    {skill:'Synonym', type:'mcq', q:'What is a synonym of BIG?',
+     choices:['tiny','large','small','little'], ans:1},
+    {skill:'Jumbled', type:'jumble', q:'Arrange the words to form a correct sentence:',
+     words:['eats','apple','a','Mary','red'], ans:'Mary eats a red apple'},
+    {skill:'Picture Vocabulary', type:'image', image:'\uD83E\uDD44',
+     q:'What is the name of this object in English?',
+     choices:['Fork','Spoon','Knife','Plate'], ans:1},
+    {skill:'Picture Vocabulary', type:'image', image:'\u2602\uFE0F',
+     q:'What is the name of this object in English?',
+     choices:['Raincoat','Hat','Umbrella','Scarf'], ans:2}
+  ],
+  average: [
+    {skill:'Grammar', type:'mcq', q:'Subject-verb agreement: "Either the boys or the girl ___ responsible."',
+     choices:['are','is','were','have'], ans:1},
+    {skill:'Vocabulary', type:'mcq', q:'What does "ABUNDANT" mean?',
+     choices:['scarce','plentiful','expensive','important'], ans:1},
+    {skill:'Synonym', type:'mcq', q:'What is a synonym of BRAVE?',
+     choices:['cowardly','timid','courageous','weak'], ans:2},
+    {skill:'Antonym', type:'mcq', q:'What is the opposite of GENEROUS?',
+     choices:['kind','giving','selfish','helpful'], ans:2},
+    {skill:'Reading', type:'mcq',
+     passage:"The Amazon rainforest produces about 20% of the world's oxygen and is home to millions of species. Sadly, deforestation threatens this vital ecosystem.",
+     q:'According to the passage, what threatens the Amazon?',
+     choices:['Climate change','Deforestation','Pollution','Tourism'], ans:1},
+    {skill:'Listening', type:'listen',
+     listenText:'The science fair will be held on Friday at three in the afternoon in the school auditorium. All students must wear their school uniform and bring their project displays.',
+     q:'When is the science fair?',
+     choices:['Friday at 2 PM','Friday at 3 PM','Saturday at 3 PM','Thursday at 3 PM'], ans:1},
+    {skill:'Grammar', type:'mcq', q:'Choose the correct preposition: "She has been studying English ___ five years."',
+     choices:['since','for','during','from'], ans:1},
+    {skill:'Vocabulary', type:'mcq', q:'What does "DILIGENT" mean?',
+     choices:['lazy','hardworking','foolish','wealthy'], ans:1},
+    {skill:'Writing', type:'mcq', q:'Choose the most appropriate opening for a FORMAL letter:',
+     choices:['Hey there!','Dear Mr. Santos,',"What's up?",'Yo!'], ans:1},
+    {skill:'Jumbled', type:'jumble', q:'Arrange the words to form a correct sentence:',
+     words:['the','team','won','championship','our','finally'], ans:'Our team finally won the championship'},
+    {skill:'Picture Vocabulary', type:'image', image:'\uD83D\uDD2D',
+     q:'What is the name of this scientific instrument?',
+     choices:['Microscope','Periscope','Telescope','Kaleidoscope'], ans:2},
+    {skill:'Picture Vocabulary', type:'image', image:'\uD83E\uDDED',
+     q:'What is this navigation tool called?',
+     choices:['Map','Compass','Clock','Gyroscope'], ans:1}
+  ],
+  difficult: [
+    {skill:'Grammar', type:'mcq', q:'Identify the type of sentence: "Although it was raining, we went hiking."',
+     choices:['Simple','Compound','Complex','Compound-Complex'], ans:2},
+    {skill:'Vocabulary', type:'mcq', q:'What does "EPHEMERAL" mean?',
+     choices:['lasting forever','short-lived','very important','extremely large'], ans:1},
+    {skill:'Idiom', type:'mcq', q:'What does the idiom "to spill the beans" mean?',
+     choices:['To cook a meal','To reveal a secret','To make a mess','To waste food'], ans:1},
+    {skill:'Synonym', type:'mcq', q:'What is a synonym of METICULOUS?',
+     choices:['careless','careful','quick','lazy'], ans:1},
+    {skill:'Antonym', type:'mcq', q:'What is the opposite of BENEVOLENT?',
+     choices:['kind','generous','malicious','wise'], ans:2},
+    {skill:'Reading', type:'mcq',
+     passage:'Photosynthesis is the process by which plants convert sunlight, water, and carbon dioxide into glucose and oxygen. This occurs primarily in the chloroplasts where chlorophyll absorbs light energy.',
+     q:'Which of these is NOT a product of photosynthesis?',
+     choices:['Glucose','Oxygen','Carbon dioxide','Energy storage'], ans:2},
+    {skill:'Listening', type:'listen',
+     listenText:"In the early twentieth century, women fought tirelessly for the right to vote. Their movement, known as women's suffrage, faced significant opposition but ultimately succeeded in many countries by the 1920s.",
+     q:"What was the women's voting rights movement called?",
+     choices:['Feminism','Suffrage','Equality','Liberation'], ans:1},
+    {skill:'Grammar', type:'mcq', q:'What is wrong with: "Walking to school, the rain started falling."?',
+     choices:['Nothing is wrong','Dangling modifier - "walking" should refer to a person','Wrong tense','Missing comma'], ans:1},
+    {skill:'Figure of Speech', type:'mcq', q:'"The wind whispered through the trees" is an example of:',
+     choices:['Simile','Metaphor','Personification','Hyperbole'], ans:2},
+    {skill:'Jumbled', type:'jumble', q:'Arrange the words to form a correct sentence:',
+     words:['despite','succeeded','difficulties','many','she','her'], ans:'She succeeded despite her many difficulties'},
+    {skill:'Picture Vocabulary', type:'image', image:'\uD83E\uDE7A',
+     q:'What medical instrument is shown here?',
+     choices:['Thermometer','Syringe','Stethoscope','Otoscope'], ans:2},
+    {skill:'Picture Vocabulary', type:'image', image:'\u2693',
+     q:'What is the name of this nautical object?',
+     choices:['Buoy','Anchor','Rudder','Harpoon'], ans:1}
+  ]
+};
+
+var POINTS = {easy:{w:10,l:5}, average:{w:20,l:10}, difficult:{w:30,l:15}};
+
+// =====================================================
+// GAME STATE
+// =====================================================
+var state = {
+  scores:[0,0],
+  used:{easy:[],average:[],difficult:[]},
+  curQ:null,
+  curDiff:null,
+  buzzWinner:null,   // 0 or 1
+  phase:'idle',      // idle | armed | answering | steal-armed | result
+  answered:false,
+  isSteal:false,
+  firstBuzzer:null,  // who originally buzzed in for current question
+  target:100,
+  muted:false,
+  bankWords:[],trayWords:[],
+  timer:null,timeLeft:0
+};
+
+// =====================================================
+// AUDIO (Web Audio API)
+// =====================================================
+var audioCtx = null;
+function ac(){
+  if (!audioCtx) {
+    try { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); } catch(e) {}
+  }
+  return audioCtx;
+}
+function tone(freq, duration, type, vol){
+  if (state.muted) return;
+  var c = ac(); if (!c) return;
+  var o = c.createOscillator(), g = c.createGain();
+  o.type = type || 'sine'; o.frequency.value = freq;
+  g.gain.value = (vol||0.2);
+  g.gain.exponentialRampToValueAtTime(0.001, c.currentTime + duration);
+  o.connect(g); g.connect(c.destination);
+  o.start(); o.stop(c.currentTime + duration);
+}
+function playBuzz(player){
+  if (state.muted) return;
+  var c = ac(); if (!c) return;
+  var now = c.currentTime;
+  if (player === 0){
+    // PLAYER 1 — deep descending "BWOOP"
+    var o = c.createOscillator(), g = c.createGain();
+    o.type = 'sawtooth';
+    o.frequency.setValueAtTime(520, now);
+    o.frequency.exponentialRampToValueAtTime(180, now + 0.35);
+    g.gain.setValueAtTime(0.35, now);
+    g.gain.exponentialRampToValueAtTime(0.001, now + 0.4);
+    o.connect(g); g.connect(c.destination);
+    o.start(now); o.stop(now + 0.4);
+  } else {
+    // PLAYER 2 — bright two-beep "BEEP-BEEP"
+    [0, 0.12].forEach(function(t){
+      var o = c.createOscillator(), g = c.createGain();
+      o.type = 'triangle';
+      o.frequency.setValueAtTime(1046, now + t);
+      g.gain.setValueAtTime(0.3, now + t);
+      g.gain.exponentialRampToValueAtTime(0.001, now + t + 0.09);
+      o.connect(g); g.connect(c.destination);
+      o.start(now + t); o.stop(now + t + 0.1);
+    });
+  }
+}
+function playCorrect(){
+  tone(523, 0.12, 'sine', 0.25);
+  setTimeout(function(){ tone(659, 0.12, 'sine', 0.25); }, 120);
+  setTimeout(function(){ tone(784, 0.2, 'sine', 0.25); }, 240);
+}
+function playWrong(){
+  tone(220, 0.2, 'sawtooth', 0.25);
+  setTimeout(function(){ tone(180, 0.3, 'sawtooth', 0.25); }, 200);
+}
+function playBell(){
+  for (var i=0; i<6; i++){
+    setTimeout(function(){ tone(1568, 0.15, 'sine', 0.3); tone(2093, 0.15, 'triangle', 0.2); }, i*200);
+  }
+}
+
+// =====================================================
+// UI HELPERS
+// =====================================================
+function $(id){ return document.getElementById(id); }
+function escHtml(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+function setStatus(html){ $('status').innerHTML = html; }
+
+function updateScores(){
+  $('p1score').textContent = state.scores[0];
+  $('p2score').textContent = state.scores[1];
+  var t = state.target;
+  var p1pct = Math.max(0, Math.min(100, state.scores[0]/t*100));
+  var p2pct = Math.max(0, Math.min(100, state.scores[1]/t*100));
+  $('p1fill').style.height = p1pct + '%';
+  $('p2fill').style.height = p2pct + '%';
+}
+
+function updateLeftCounts(){
+  ['easy','average','difficult'].forEach(function(d){
+    var left = QUESTIONS[d].length - state.used[d].length;
+    $('left' + d.charAt(0).toUpperCase()+d.slice(1)).textContent = '(' + left + ' left)';
+    $('diffPicker').querySelector('[data-d="'+d+'"]').disabled = (left===0);
+  });
+}
+
+function showDiffPicker(){
+  $('diffPicker').style.display = 'flex';
+  $('qArea').classList.remove('show');
+  var isStart = (state.scores[0]===0 && state.scores[1]===0 &&
+    state.used.easy.length===0 && state.used.average.length===0 && state.used.difficult.length===0);
+  setStatus(isStart
+    ? '&#128293; <strong>Test your buzzers!</strong> Tap them to hear your sound, then pick a difficulty to begin.'
+    : '&#128293; Pick a difficulty for the next round! (Buzzers can be tested freely.)');
+  $('p1').classList.remove('active','dim');
+  $('p2').classList.remove('active','dim');
+  // Buzzers stay TAPPABLE in idle phase for testing
+  $('p1buzz').disabled = false;
+  $('p2buzz').disabled = false;
+  $('p1buzz').classList.remove('armed');
+  $('p2buzz').classList.remove('armed');
+  state.phase = 'idle';
+  updateLeftCounts();
+}
+
+// =====================================================
+// PICK DIFFICULTY → SHOW QUESTION
+// =====================================================
+function pickDifficulty(d){
+  if (state.phase !== 'idle') return;
+  var pool = QUESTIONS[d];
+  var available = [];
+  for (var i=0; i<pool.length; i++){
+    if (state.used[d].indexOf(i) === -1) available.push(i);
+  }
+  if (!available.length) return;
+  var qi = available[Math.floor(Math.random()*available.length)];
+  state.used[d].push(qi);
+  state.curDiff = d;
+  state.curQ = pool[qi];
+  state.buzzWinner = null;
+  state.firstBuzzer = null;
+  state.isSteal = false;
+  state.answered = false;
+
+  $('diffPicker').style.display = 'none';
+  $('qArea').classList.add('show');
+
+  renderQuestion();
+  armBuzzers();
+}
+
+// =====================================================
+// RENDER QUESTION
+// =====================================================
+function renderQuestion(){
+  var q = state.curQ;
+  $('skillTag').textContent = state.curDiff.toUpperCase() + ' • ' + q.skill;
+  $('passage').style.display = 'none';
+  $('listenArea').style.display = 'none';
+  $('imageArea').style.display = 'none';
+  $('jumbleArea').style.display = 'none';
+  $('choices').style.display = '';
+  $('choices').innerHTML = '';
+  $('fb').style.display = 'none';
+  $('nextBtn').style.display = 'none';
+  $('qtext').innerHTML = escHtml(q.q).replace(/\n/g,'<br>');
+
+  if (q.passage){
+    $('passage').style.display = '';
+    $('passage').textContent = q.passage;
+  }
+  if (q.type === 'listen'){
+    $('listenArea').style.display = '';
+    var pb = $('playBtn');
+    pb.innerHTML = '&#128266; Play Recording';
+    pb.disabled = false;
+    pb.dataset.plays = '0';
+  }
+  if (q.type === 'image'){
+    $('imageArea').style.display = '';
+    $('imageArea').innerHTML = q.image;
+  }
+  if (q.type === 'jumble'){
+    $('choices').style.display = 'none';
+    $('jumbleArea').style.display = '';
+    state.bankWords = q.words.slice().sort(function(){return Math.random()-0.5;});
+    state.trayWords = [];
+    renderJumble();
+  } else {
+    q.choices.forEach(function(c, i){
+      var b = document.createElement('button');
+      b.className = 'choice';
+      b.disabled = true; // locked until someone buzzes in
+      b.innerHTML = '<span class="letter">' + String.fromCharCode(65+i) + '</span><span>' + escHtml(c) + '</span>';
+      b.onclick = function(){ chooseAnswer(i); };
+      $('choices').appendChild(b);
+    });
+  }
+}
+
+function jumbleEditable(){
+  return state.phase === 'answering' && !state.answered;
+}
+function renderJumble(){
+  var bank = $('wBank'), tray = $('wTray');
+  bank.innerHTML = ''; tray.innerHTML = '';
+  var editable = jumbleEditable();
+  state.bankWords.forEach(function(w, i){
+    var b = document.createElement('button');
+    b.className = 'w-chip'; b.textContent = w;
+    b.disabled = !editable;
+    b.onclick = function(){
+      if (!jumbleEditable()) return;
+      state.trayWords.push(state.bankWords[i]);
+      state.bankWords.splice(i,1);
+      renderJumble();
+    };
+    bank.appendChild(b);
+  });
+  state.trayWords.forEach(function(w, i){
+    var b = document.createElement('button');
+    b.className = 'w-chip-sel'; b.textContent = w;
+    b.disabled = !editable;
+    b.onclick = function(){
+      if (!jumbleEditable()) return;
+      state.bankWords.push(state.trayWords[i]);
+      state.trayWords.splice(i,1);
+      renderJumble();
+    };
+    tray.appendChild(b);
+  });
+  $('jumbleCheck').disabled = !editable;
+}
+
+// =====================================================
+// LISTEN PLAYBACK (max 2 plays)
+// =====================================================
+$('playBtn').onclick = function(){
+  if (!('speechSynthesis' in window)) return;
+  var pb = $('playBtn');
+  var plays = parseInt(pb.dataset.plays || '0', 10);
+  if (plays >= 2) return;
+  plays++;
+  pb.dataset.plays = String(plays);
+  window.speechSynthesis.cancel();
+  var u = new SpeechSynthesisUtterance(state.curQ.listenText);
+  u.rate = 0.85; u.lang = 'en-US';
+  pb.disabled = true;
+  pb.innerHTML = '&#9654; Playing... (' + plays + '/2)';
+  u.onend = function(){
+    if (plays >= 2){ pb.innerHTML = '&#128263; No more plays (2/2)'; pb.disabled = true; }
+    else { pb.innerHTML = '&#128257; Play Again (' + (2-plays) + ' left)'; pb.disabled = false; }
+  };
+  window.speechSynthesis.speak(u);
+};
+
+// =====================================================
+// BUZZER LOGIC
+// =====================================================
+function armBuzzers(){
+  state.phase = 'armed';
+  $('p1buzz').disabled = false;
+  $('p2buzz').disabled = false;
+  $('p1buzz').classList.add('armed');
+  $('p2buzz').classList.add('armed');
+  $('p1').classList.remove('dim');
+  $('p2').classList.remove('dim');
+  $('fb').style.display = 'none';
+  setStatus('&#128266; <strong>BUZZ IN!</strong> First to tap their buzzer answers (20s).');
+  startTimer(20, 'buzz-window');
+}
+
+// Highlights the buzzer of `activePlayer` (0 or 1) as flashing and disables the other.
+function setBuzzerStates(activePlayer){
+  var a = $('p' + (activePlayer+1) + 'buzz');
+  var b = $('p' + ((1-activePlayer)+1) + 'buzz');
+  a.disabled = false;
+  a.classList.add('armed');
+  b.disabled = true;
+  b.classList.remove('armed');
+}
+
+function noBuzzReArm(){
+  // Nobody buzzed in time → keep the SAME question and re-arm.
+  $('p1buzz').classList.remove('armed');
+  $('p2buzz').classList.remove('armed');
+  $('p1buzz').disabled = true;
+  $('p2buzz').disabled = true;
+  state.phase = 'idle';
+  var fb = $('fb');
+  fb.style.display = 'block';
+  fb.className = 'feedback bad';
+  fb.innerHTML = '&#9201; <strong>No one buzzed!</strong> Same question — try again.';
+  setTimeout(function(){
+    fb.style.display = 'none';
+    armBuzzers();
+  }, 1800);
+}
+
+$('p1buzz').addEventListener('click', function(){ buzz(0); });
+$('p2buzz').addEventListener('click', function(){ buzz(1); });
+
+function buzz(player){
+  ac(); // resume audio context on user gesture
+
+  // TEST MODE — idle phase: let players freely try their buzzers.
+  if (state.phase === 'idle' || state.phase === 'result'){
+    playBuzz(player);
+    return;
+  }
+
+  if (state.phase === 'armed'){
+    stopTimer();
+    state.phase = 'answering';
+    state.buzzWinner = player;
+    state.firstBuzzer = player;
+    playBuzz(player);
+
+    // Keep the buzzer of the player who buzzed in flashing; grey out only the opponent.
+    setBuzzerStates(player);
+    if (player === 0){ $('p1').classList.add('active'); $('p2').classList.add('dim'); }
+    else { $('p2').classList.add('active'); $('p1').classList.add('dim'); }
+
+    var name = $('p' + (player+1) + 'name').value || ('Player ' + (player+1));
+    setStatus('&#9889; <span class="who">' + escHtml(name) + '</span> buzzed in! Choose your answer (10s).');
+
+    if (state.curQ.type === 'jumble'){
+      renderJumble();
+    } else {
+      document.querySelectorAll('.choice').forEach(function(b){ b.disabled = false; });
+    }
+    startTimer(10, 'answer');
+    return;
+  }
+
+  if (state.phase === 'steal-armed'){
+    // Only the opponent of the first buzzer may steal
+    if (player === state.firstBuzzer) return;
+    state.phase = 'answering';
+    state.buzzWinner = player;
+    state.answered = false;
+    stopTimer();
+    playBuzz(player);
+
+    // Stealer's buzzer keeps flashing; the other gets greyed out.
+    setBuzzerStates(player);
+    $('p1').classList.remove('active','dim');
+    $('p2').classList.remove('active','dim');
+    if (player === 0){ $('p1').classList.add('active'); $('p2').classList.add('dim'); }
+    else { $('p2').classList.add('active'); $('p1').classList.add('dim'); }
+
+    var sname = $('p' + (player+1) + 'name').value || ('Player ' + (player+1));
+    setStatus('&#129399; STEAL! <span class="who">' + escHtml(sname) + '</span> — answer fast (8s)!');
+
+    if (state.curQ.type === 'jumble'){
+      renderJumble();
+    } else {
+      document.querySelectorAll('.choice').forEach(function(b){ b.disabled = false; });
+    }
+    startTimer(8, 'answer');
+  }
+}
+
+// =====================================================
+// TIMER
+// =====================================================
+function startTimer(secs, mode){
+  state.timeLeft = secs;
+  $('timerFill').style.transition = 'none';
+  $('timerFill').style.width = '100%';
+  // force reflow
+  $('timerFill').offsetWidth;
+  $('timerFill').style.transition = 'width ' + secs + 's linear';
+  $('timerFill').style.width = '0%';
+  if (state.timer) clearTimeout(state.timer);
+  state.timer = setTimeout(function(){
+    if (mode === 'steal-window' && state.phase === 'steal-armed'){
+      endStealDeclined();
+    } else if (mode === 'buzz-window' && state.phase === 'armed'){
+      noBuzzReArm();
+    } else if (mode === 'answer' && state.phase === 'answering' && !state.answered){
+      handleResult(false, true);
+    }
+  }, secs*1000);
+}
+function stopTimer(){
+  if (state.timer){ clearTimeout(state.timer); state.timer = null; }
+  $('timerFill').style.transition = 'none';
+  $('timerFill').style.width = '0%';
+}
+
+// =====================================================
+// ANSWER HANDLERS
+// =====================================================
+function chooseAnswer(i){
+  if (state.phase !== 'answering' || state.answered) return;
+  state.answered = true;
+  stopTimer();
+  var btns = document.querySelectorAll('.choice');
+  btns.forEach(function(b){ b.disabled = true; });
+  var correct = (i === state.curQ.ans);
+  btns[i].classList.add(correct ? 'correct' : 'wrong');
+  // The correct answer is revealed only after the question fully ends
+  // (so the steal opponent doesn't see it for free).
+  handleResult(correct, false);
+}
+
+$('jumbleCheck').onclick = function(){
+  if (state.phase !== 'answering' || state.answered) return;
+  state.answered = true;
+  stopTimer();
+  var user = state.trayWords.join(' ').toLowerCase().trim();
+  var ans = state.curQ.ans.toLowerCase().trim();
+  handleResult(user === ans, false);
+};
+
+function handleResult(correct, timedOut){
+  var pts = POINTS[state.curDiff];
+  var winner = state.buzzWinner;
+  var name = winner === null ? '(no one)' : ($('p' + (winner+1) + 'name').value || 'Player ' + (winner+1));
+  var fb = $('fb');
+  fb.style.display = 'block';
+  var why = timedOut ? '&#9201; Time\'s up!' : '&#10060; Wrong!';
+  var ansText = state.curQ.type === 'jumble' ? state.curQ.ans :
+                state.curQ.choices[state.curQ.ans];
+
+  if (correct){
+    state.scores[winner] += pts.w;
+    fb.className = 'feedback ok';
+    var label = state.isSteal ? ' steals and earns ' : ' earns ';
+    fb.innerHTML = '&#9989; Correct! <strong>' + escHtml(name) + '</strong>' + label + '+' + pts.w + ' points!';
+    playCorrect();
+    revealCorrect();
+    finishQuestion();
+    return;
+  }
+
+  // WRONG ANSWER
+  state.scores[winner] -= pts.l;
+  updateScores();
+  playWrong();
+
+  if (state.isSteal){
+    // Steal failed → end question, reveal answer
+    fb.className = 'feedback bad';
+    fb.innerHTML = why + ' <strong>' + escHtml(name) + '</strong> loses -' + pts.l +
+                   ' points on the steal.<br><small>Correct answer: <strong>' + escHtml(ansText) + '</strong></small>';
+    revealCorrect();
+    finishQuestion();
+    return;
+  }
+
+  // First attempt wrong → offer steal to the opponent
+  fb.className = 'feedback bad';
+  var oppIdx = 1 - winner;
+  var oppName = $('p' + (oppIdx+1) + 'name').value || ('Player ' + (oppIdx+1));
+  fb.innerHTML = why + ' <strong>' + escHtml(name) + '</strong> loses -' + pts.l +
+                 ' points.<br>&#129399; <strong>' + escHtml(oppName) + '</strong>, you have <strong>6 seconds</strong> to BUZZ and STEAL!';
+  startStealPhase();
+}
+
+function revealCorrect(){
+  if (state.curQ && state.curQ.type !== 'jumble'){
+    var btns = document.querySelectorAll('.choice');
+    if (btns[state.curQ.ans]) btns[state.curQ.ans].classList.add('correct');
+  }
+}
+
+function finishQuestion(){
+  updateScores();
+  state.phase = 'result';
+  $('p1').classList.remove('active','dim');
+  $('p2').classList.remove('active','dim');
+  $('p1buzz').disabled = true; $('p2buzz').disabled = true;
+  $('p1buzz').classList.remove('armed'); $('p2buzz').classList.remove('armed');
+  $('nextBtn').style.display = '';
+  if (state.scores[0] >= state.target || state.scores[1] >= state.target){
+    setTimeout(triggerWin, 1200);
+  }
+}
+
+function startStealPhase(){
+  state.isSteal = true;
+  state.answered = false;
+  state.phase = 'steal-armed';
+  var opp = 1 - state.firstBuzzer;
+
+  // Clear answer markings so the stealer doesn't see what was picked
+  if (state.curQ.type !== 'jumble'){
+    document.querySelectorAll('.choice').forEach(function(b){
+      b.classList.remove('correct','wrong');
+      b.disabled = true;
+    });
+  } else {
+    // Reset the jumble back to a single bank for the stealer
+    state.bankWords = state.bankWords.concat(state.trayWords);
+    state.trayWords = [];
+    state.bankWords.sort(function(){ return Math.random()-0.5; });
+    renderJumble();
+  }
+
+  // Visually highlight only the opponent's panel; only their buzzer is armed
+  $('p' + (state.firstBuzzer+1)).classList.remove('active');
+  $('p' + (state.firstBuzzer+1)).classList.add('dim');
+  $('p' + (opp+1)).classList.remove('dim');
+  $('p' + (opp+1)).classList.add('active');
+  $('p1buzz').disabled = (opp !== 0);
+  $('p2buzz').disabled = (opp !== 1);
+  $('p1buzz').classList.remove('armed');
+  $('p2buzz').classList.remove('armed');
+  $('p' + (opp+1) + 'buzz').classList.add('armed');
+
+  var oppName = $('p' + (opp+1) + 'name').value || ('Player ' + (opp+1));
+  setStatus('&#129399; STEAL CHANCE! <span class="who">' + escHtml(oppName) + '</span> — buzz in within 6 seconds, or pass.');
+  startTimer(6, 'steal-window');
+}
+
+function endStealDeclined(){
+  // Opponent did not buzz in — no penalty, just move on.
+  var fb = $('fb');
+  fb.innerHTML += '<br><em>No steal attempt. Moving on...</em>';
+  revealCorrect();
+  finishQuestion();
+}
+
+$('nextBtn').onclick = function(){
+  // Check win first
+  if (state.scores[0] >= state.target || state.scores[1] >= state.target){
+    triggerWin(); return;
+  }
+  // Check if all questions used up
+  var totalLeft = ['easy','average','difficult'].reduce(function(s,d){
+    return s + QUESTIONS[d].length - state.used[d].length;
+  }, 0);
+  if (totalLeft === 0){ triggerWin(); return; }
+  showDiffPicker();
+};
+
+// =====================================================
+// WIN / RESET
+// =====================================================
+function triggerWin(){
+  var winner;
+  if (state.scores[0] === state.scores[1]) winner = -1;
+  else winner = state.scores[0] > state.scores[1] ? 0 : 1;
+  var p1n = $('p1name').value || 'Player 1';
+  var p2n = $('p2name').value || 'Player 2';
+
+  if (winner === -1){
+    $('winnerName').textContent = "It's a TIE!";
+  } else {
+    var name = winner === 0 ? p1n : p2n;
+    $('winnerName').textContent = '🎉 ' + name + ' WINS! 🎉';
+    $('p' + (winner+1) + 'bell').classList.add('ring');
+    playBell();
+    burstConfetti();
+  }
+  $('finalScores').innerHTML = p1n + ': <strong>' + state.scores[0] + '</strong> &nbsp;|&nbsp; ' +
+                               p2n + ': <strong>' + state.scores[1] + '</strong>';
+  $('winOvl').classList.add('show');
+}
+
+function burstConfetti(){
+  var colors = ['#ffd700','#ff6b6b','#3b82f6','#10b981','#a855f7','#fb923c'];
+  for (var i=0; i<60; i++){
+    (function(){
+      var d = document.createElement('div');
+      d.className = 'confetti';
+      d.style.background = colors[Math.floor(Math.random()*colors.length)];
+      d.style.left = Math.random()*100 + 'vw';
+      d.style.transform = 'rotate(' + Math.random()*360 + 'deg)';
+      var dur = 2.5 + Math.random()*2;
+      d.style.transition = 'top ' + dur + 's linear, transform ' + dur + 's linear, opacity ' + dur + 's';
+      document.body.appendChild(d);
+      setTimeout(function(){
+        d.style.top = (90 + Math.random()*10) + 'vh';
+        d.style.transform = 'rotate(' + (720 + Math.random()*720) + 'deg)';
+        d.style.opacity = '0';
+      }, 30);
+      setTimeout(function(){ d.remove(); }, dur*1000 + 100);
+    })();
+  }
+}
+
+$('playAgain').onclick = function(){ resetGame(); };
+$('restartBtn').onclick = function(){
+  if (confirm('Restart the game? All scores will be reset.')) resetGame();
+};
+$('target').onchange = function(){
+  var v = parseInt(this.value, 10);
+  if (isNaN(v) || v < 30) v = 30;
+  if (v > 300) v = 300;
+  this.value = v;
+  state.target = v;
+  updateScores();
+};
+$('muteBtn').onclick = function(){
+  state.muted = !state.muted;
+  this.innerHTML = state.muted ? '&#128263; Sound: OFF' : '&#128266; Sound: ON';
+};
+
+function resetGame(){
+  state.scores = [0,0];
+  state.used = {easy:[],average:[],difficult:[]};
+  state.curQ = null; state.curDiff = null;
+  state.buzzWinner = null; state.answered = false;
+  state.phase = 'idle';
+  $('winOvl').classList.remove('show');
+  $('p1bell').classList.remove('ring');
+  $('p2bell').classList.remove('ring');
+  if (window.speechSynthesis) window.speechSynthesis.cancel();
+  updateScores();
+  showDiffPicker();
+}
+
+// Wire difficulty buttons
+document.querySelectorAll('.diff-btn').forEach(function(b){
+  b.addEventListener('click', function(){ pickDifficulty(this.dataset.d); });
+});
+
+// Allow keyboard buzzing (A=P1, L=P2) for testing/desktop
+document.addEventListener('keydown', function(e){
+  if (state.phase !== 'armed') return;
+  if (e.key === 'a' || e.key === 'A') buzz(0);
+  if (e.key === 'l' || e.key === 'L') buzz(1);
+});
+
+// =====================================================
+// START
+// =====================================================
+state.target = parseInt($('target').value, 10);
+updateScores();
+showDiffPicker();
+</script>
+</body>
+</html>
